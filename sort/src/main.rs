@@ -1,29 +1,10 @@
-use std::io::{self, BufRead, Read};
-use rand::{thread_rng, Rng};
-use std::fs::{File, OpenOptions};
-use std::io::prelude::*;
+use std::io::{Read};
 
-const INSERTION_SORT_THRESHOLD: usize = 100;
 
-fn quicksort<T: Ord>(arr: &mut [T], len: usize) {
-    if len <= 1 {
-        return;
-    }
-    if len <= INSERTION_SORT_THRESHOLD {
-        insertion_sort(arr, len);
-        return;
-    }
-    let (pivot, pattern_detected) = choose_pivot(arr, len);
-    let mid = partition(arr, pivot, len);
-    if pattern_detected {
-        return;
-    }
-    quicksort(&mut arr[..mid], len);
-    quicksort(&mut arr[mid + 1..], len);
-}
+const INSERTION_SORT_THRESHOLD: usize = 101;
 
-fn insertion_sort<T: Ord>(arr: &mut [T], len: usize) {
-    for i in 1..len {
+fn insertion_sort(arr: &mut [i32]) {
+    for i in 1..arr.len() {
         let mut j = i;
         while j > 0 && arr[j - 1] > arr[j] {
             arr.swap(j - 1, j);
@@ -32,58 +13,14 @@ fn insertion_sort<T: Ord>(arr: &mut [T], len: usize) {
     }
 }
 
-//lomuto partition
-fn partition<T: Ord>(arr: &mut [T], pivot: usize, len: usize) -> usize {
-    let last = len - 1;
-    arr.swap(pivot, last);
-    let mut i = 0;
-    for j in 0..last {
-        if arr[j] <= arr[last] {
-            arr.swap(i, j);
-            i += 1;
-        }
-    }
-    arr.swap(i, last);
-    i
-}
 
-//Column of 5 method to guarentee O(nlog(n)) runtime
-fn choose_pivot<T: Ord>(arr: &[T], len: usize) -> (usize, bool) {
-    let mut rng = thread_rng();
-    let mut indices = [0; 5];
-    for i in 0..5 {
-        indices[i] = rng.gen_range(0..len);
-    }
-    indices.sort_unstable();
-    let median_index = indices[2];
 
-    let (pivot, pattern_detected) = if samenumber_pattern(arr, median_index) {
-        (len / 2, true)
-    } else {
-        (median_index, false)
-    };
-    (pivot, pattern_detected)
-}
 
-//Checks if arr as same numbers e.g. [0, 1, 1, 2, 2, 1, 5, 3, 9, 6].
-fn samenumber_pattern<T: Ord>(arr: &[T], pivot: usize) -> bool {
-    let mut i = pivot;
-    let mut j = pivot + 1;
-    while i > 0 && arr[i] == arr[i - 1] {
-        i -= 1;
-    }
-    while j < arr.len() && arr[j] == arr[j - 1] {
-        j += 1;
-    }
-    j - i >= arr.len() / 2
-}
 
 fn main() {
-    random_arr_generation();
-    let length = test().len();
-    let mut arr = test();
-    
-    quicksort(&mut arr, length);
+
+    let mut arr = input();
+    qsort(&mut arr);
     
     // output
     for _v in arr {
@@ -92,42 +29,141 @@ fn main() {
     println!("");
 }
 
-// thank you jblomlof for letting me know how this kattis deals with input
-fn input() -> Vec<i32> {
-    let mut input = String::new();
-    std::io::stdin().lock().read_to_string(&mut input);
-
-    let mut vals: Vec<i32> = input
-        .split_whitespace()
-        .skip(1)
-        .map(|x| x.parse().unwrap())
-        .collect();
-
-    vals
-}
-
-fn test() -> Vec<i32> {
-    let input = std::fs::read_to_string("src/tests.txt").unwrap();
-
-    let mut vals: Vec<i32> = input
-        .split_whitespace()
-        .skip(1)
-        .map(|x| x.parse().unwrap())
-        .collect();
-
-    // println!("beg: {:?}", vals);
-    vals
-}
-
-fn random_arr_generation() {
-    let mut file = OpenOptions::new().write(true).open("src/tests.txt").unwrap();
-    let mut rng = rand::thread_rng();
-  
-    let random_vec: Vec<i32> = (0..50).map(|_| rng.gen_range(-10000..=10000)).collect();
-        
-    // Write the vector elements to the file
-    for number in &random_vec {
-        write!(file, "{} ", number).expect("Unable to write data to file");
+fn qsort(arr: &mut [i32]) {
+    if arr.len() <= 1 {
+        return;
+    }
+    if arr.len() < INSERTION_SORT_THRESHOLD {
+        insertion_sort(arr);
+        return;
     }
 
+    if arr.len() > 0 {
+        let pivot: usize = partition(&mut arr[..]);
+
+        qsort(&mut arr[..(pivot + 1)]);
+        qsort(&mut arr[(pivot + 1)..]);
+    }
 }
+
+//hoere partition
+fn partition(arr: &mut [i32]) -> usize {
+    pivot(arr);
+    
+    let pivot = arr[0];
+    let mut i = -1;
+    let mut j = arr.len() as i32;
+
+    loop {
+        i += 1;
+        while arr[i as usize] < pivot {
+            i += 1;
+        }
+
+        j -= 1;
+        while arr[j as usize] > pivot {
+            j -= 1;
+        }
+
+        if i >= j {
+            return j as usize;
+        }
+
+        arr.swap(i as usize, j as usize);
+    }
+}
+
+
+//low, mid, high pivot selection
+fn pivot(arr: &mut [i32]) {
+    let b = arr.len() / 2;
+    let c = arr.len() - 1;
+
+    let mut median = 0;
+
+    if arr[0] < arr[b] {
+        if arr[b] < arr[c] {
+            median = b;
+        } else if arr[0] < arr[c] {
+            median = c;
+        }
+    } else {
+        if arr[c] < arr[b] {
+            median = b;
+        } else if arr[c] < arr[0] {
+            median = c;
+        }
+    }
+
+    arr.swap(median, 0);
+}
+
+//Throws run-time error for some reason?
+fn median_of_medians(arr: &mut [i32]) -> i32 {
+    if arr.len() <= 5 {
+        arr.sort_unstable();
+        return arr[arr.len() / 2];
+    }
+
+    let num_chunks = (arr.len() + 4) / 5;
+    let mut medians = vec![0; num_chunks];
+
+    for i in 0..num_chunks {
+        let chunk_start = i * 5;
+        let chunk_end = chunk_start + 5;
+        let chunk_slice = &mut arr[chunk_start..chunk_end];
+        medians[i] = median_of_medians(chunk_slice);
+    }
+
+    let pivot = median_of_medians(&mut medians);
+
+    let mut left = 0;
+    let mut right = arr.len() - 1;
+
+    while left <= right {
+        while arr[left] < pivot {
+            left += 1;
+        }
+        while arr[right] > pivot {
+            right -= 1;
+        }
+        if left <= right {
+            arr.swap(left, right);
+            left += 1;
+            right -= 1;
+        }
+    }
+
+    if left == right + 2 {
+        arr.swap(right + 1, arr.len() / 2);
+    } else if left == right + 1 {
+        if arr[right] > pivot {
+            arr.swap(right, arr.len() / 2);
+        } else {
+            arr.swap(left, arr.len() / 2);
+        }
+    } else {
+        arr[arr.len() / 2] = pivot;
+    }
+
+    arr.swap(arr[arr.len() / 2] as usize, 0);
+    return arr[arr.len() / 2];
+}
+
+
+
+
+
+fn input() -> Vec<i32> {
+    let mut input = String::new();
+    std::io::stdin().lock().read_to_string(&mut input).expect("input failed");
+
+    let vals: Vec<i32> = input
+        .split_whitespace()
+        .skip(1)
+        .map(|x| x.parse().unwrap())
+        .collect();
+
+    vals
+}
+
